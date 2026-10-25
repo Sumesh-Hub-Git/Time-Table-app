@@ -1,0 +1,369 @@
+{
+  "application": "StudyFlow",
+  "version": "1.0",
+  "categories": [
+    {
+      "category_id": 1,
+      "name": "Study",
+      "color": "#6366F1",
+      "icon": "book-open"
+    },
+    {
+      "category_id": 2,
+      "name": "Assignment",
+      "color": "#EC4899",
+      "icon": "file-text"
+    },
+    {
+      "category_id": 3,
+      "name": "Exam",
+      "color": "#EF4444",
+      "icon": "alert-circle"
+    },
+    {
+      "category_id": 4,
+      "name": "Project",
+      "color": "#8B5CF6",
+      "icon": "folder"
+    },
+    {
+      "category_id": 5,
+      "name": "Personal",
+      "color": "#10B981",
+      "icon": "user"
+    },
+    {
+      "category_id": 6,
+      "name": "Exercise",
+      "color": "#F59E0B",
+      "icon": "activity"
+    },
+    {
+      "category_id": 7,
+      "name": "Revision",
+      "color": "#3B82F6",
+      "icon": "refresh-cw"
+    },
+    {
+      "category_id": 8,
+      "name": "Practice",
+      "color": "#14B8A6",
+      "icon": "target"
+    },
+    {
+      "category_id": 9,
+      "name": "Other",
+      "color": "#64748B",
+      "icon": "tag"
+    }
+  ],
+  "tasks": [
+    {
+      "task_id": 20,
+      "title": "General Aptitude",
+      "description": "NaN",
+      "category_id": 1,
+      "priority": "High",
+      "scheduled_date": "2026-08-31",
+      "start_time": "19:00",
+      "end_time": "20:30",
+      "repeat_type": "Custom Dates",
+      "reminder_minutes": 15,
+      "created_at": "2026-08-31T18:24:38.909902",
+      "is_active": 1,
+      "end_date": "",
+      "custom_dates": "[\"2026-08-31\", \"2026-09-01\", \"2026-09-03\", \"2026-09-07\", \"2026-09-08\", \"2026-09-10\", \"2026-09-14\", \"2026-09-15\", \"2026-09-17\", \"2026-09-21\", \"2026-09-22\", \"2026-09-24\", \"2026-09-28\", \"2026-09-29\", \"2026-10-01\", \"2026-10-05\", \"2026-10-06\"]"
+    },
+    {
+      "task_id": 21,
+      "title": "Machine Learning",
+      "description": "Complete ML",
+      "category_id": 1,
+      "priority": "Medium",
+      "scheduled_date": "2026-08-31",
+      "start_time": "21:00",
+      "end_time": "23:00",
+      "repeat_type": "Date Range",
+      "reminder_minutes": 15,
+      "created_at": "2026-08-31T18:40:25.592507",
+      "is_active": 1,
+      "end_date": "2026-09-19",
+      "custom_dates": ""
+    },
+    {
+      "task_id": 23,
+      "title": "Basic of CS",
+      "description": "Basic CS",
+      "category_id": 1,
+      "priority": "Medium",
+      "scheduled_date": "2026-09-01",
+      "start_time": "11:00",
+      "end_time": "12:00",
+      "repeat_type": "Custom Dates",
+      "reminder_minutes": 15,
+      "created_at": "2026-08-31T18:44:25.078388",
+      "is_active": 1,
+      "end_date": "",
+      "custom_dates": "[\"2026-09-01\", \"2026-09-02\", \"2026-09-03\", \"2026-09-07\", \"2026-09-08\", \"2026-09-09\", \"2026-09-10\"]"
+    },
+    {
+      "task_id": 24,
+      "title": "C programming",
+      "description": "Basic C",
+      "category_id": 2,
+      "priority": "Medium",
+      "scheduled_date": "2026-08-31",
+      "start_time": "23:15",
+      "end_time": "00:15",
+      "repeat_type": "Date Range",
+      "reminder_minutes": 15,
+      "created_at": "2026-08-31T18:51:10.322508",
+      "is_active": 1,
+      "end_date": "2026-09-20",
+      "custom_dates": ""
+    },
+    {
+      "task_id": 30,
+      "title": "DMS",
+      "description": "Complete DMS",
+      "category_id": 1,
+      "priority": "Critical",
+      "scheduled_date": "2026-09-01",
+      "start_time": "16:00",
+      "end_time": "17:30",
+      "repeat_type": "Daily",
+      "reminder_minutes": 15,
+      "created_at": "2026-08-31T20:37:30.954185",
+      "is_active": 1,
+      "end_date": "2026-10-19",
+      "custom_dates": ""
+    },
+    {
+      "task_id": 31,
+      "title": "Basics of Mathematics",
+      "description": "Simple Maths",
+      "category_id": 1,
+      "priority": "Medium",
+      "scheduled_date": "2026-09-14",
+      "start_time": "10:00",
+      "end_time": "11:00",
+      "repeat_type": "Custom Dates",
+      "reminder_minutes": 15,
+      "created_at": "2026-08-31T20:55:50.744832",
+      "is_active": 1,
+      "end_date": "",
+      "custom_dates": "[\"2026-09-14\", \"2026-09-15\", \"2026-09-16\", \"2026-09-17\", \"2026-09-21\", \"2026-09-22\", \"2026-09-23\", \"2026-09-24\", \"2026-09-28\", \"2026-09-29\", \"2026-09-30\", \"2026-10-01\", \"2026-10-05\", \"2026-10-06\", \"2026-10-07\", \"2026-10-08\", \"2026-10-12\", \"2026-10-13\", \"2026-10-14\", \"2026-10-15\", \"2026-10-19\", \"2026-10-20\", \"2026-10-21\", \"2026-10-22\"]"
+    },
+    {
+      "task_id": 32,
+      "title": "PS",
+      "description": "Probability and Statistics",
+      "category_id": 1,
+      "priority": "Medium",
+      "scheduled_date": "2026-09-20",
+      "start_time": "21:00",
+      "end_time": "23:00",
+      "repeat_type": "Date Range",
+      "reminder_minutes": 15,
+      "created_at": "2026-08-31T21:07:09.044247",
+      "is_active": 1,
+      "end_date": "2026-10-22",
+      "custom_dates": ""
+    },
+    {
+      "task_id": 33,
+      "title": "Linear Algebra",
+      "description": "Linear Algebra",
+      "category_id": 1,
+      "priority": "High",
+      "scheduled_date": "2026-09-04",
+      "start_time": "14:30",
+      "end_time": "16:00",
+      "repeat_type": "Custom Dates",
+      "reminder_minutes": 15,
+      "created_at": "2026-09-01T16:55:54.459139",
+      "is_active": 1,
+      "end_date": "",
+      "custom_dates": "[\"2026-09-04\", \"2026-09-05\", \"2026-09-06\", \"2026-09-11\", \"2026-09-12\", \"2026-09-13\", \"2026-09-18\", \"2026-09-19\", \"2026-09-20\", \"2026-09-25\", \"2026-09-26\", \"2026-09-27\", \"2026-10-02\", \"2026-10-03\", \"2026-10-04\", \"2026-10-09\", \"2026-10-10\", \"2026-10-11\", \"2026-10-16\"]"
+    },
+    {
+      "task_id": 34,
+      "title": "Digital Logic",
+      "description": "DL",
+      "category_id": 1,
+      "priority": "High",
+      "scheduled_date": "2026-09-21",
+      "start_time": "23:15",
+      "end_time": "00:30",
+      "repeat_type": "Date Range",
+      "reminder_minutes": 15,
+      "created_at": "2026-09-01T17:00:57.620089",
+      "is_active": 1,
+      "end_date": "2026-11-11",
+      "custom_dates": ""
+    },
+    {
+      "task_id": 35,
+      "title": "IDK",
+      "description": "IDK",
+      "category_id": 1,
+      "priority": "Critical",
+      "scheduled_date": "2026-09-05",
+      "start_time": "07:00",
+      "end_time": "08:30",
+      "repeat_type": "Custom Dates",
+      "reminder_minutes": 15,
+      "created_at": "2026-09-01T17:05:21.475834",
+      "is_active": 1,
+      "end_date": "",
+      "custom_dates": "[\"2026-09-05\", \"2026-09-06\", \"2026-09-12\", \"2026-09-13\", \"2026-09-19\", \"2026-09-20\", \"2026-09-26\", \"2026-09-27\"]"
+    },
+    {
+      "task_id": 36,
+      "title": "IDK 2",
+      "description": "idk",
+      "category_id": 2,
+      "priority": "Medium",
+      "scheduled_date": "2026-09-05",
+      "start_time": "08:35",
+      "end_time": "09:00",
+      "repeat_type": "Custom Dates",
+      "reminder_minutes": 15,
+      "created_at": "2026-09-01T17:06:36.612483",
+      "is_active": 1,
+      "end_date": "",
+      "custom_dates": "[\"2026-09-05\", \"2026-09-06\", \"2026-09-12\", \"2026-09-13\", \"2026-09-19\", \"2026-09-20\", \"2026-09-26\", \"2026-09-27\"]"
+    },
+    {
+      "task_id": 37,
+      "title": "COA",
+      "description": "Computer Organization and Architecture",
+      "category_id": 2,
+      "priority": "Medium",
+      "scheduled_date": "2026-09-02",
+      "start_time": "19:00",
+      "end_time": "20:30",
+      "repeat_type": "Weekly",
+      "reminder_minutes": 15,
+      "created_at": "2026-09-02T16:54:49.363751",
+      "is_active": 1,
+      "end_date": "2026-11-18",
+      "custom_dates": ""
+    },
+    {
+      "task_id": 38,
+      "title": "COA",
+      "description": "Computer Organization and Architecture",
+      "category_id": 2,
+      "priority": "Medium",
+      "scheduled_date": "2026-09-04",
+      "start_time": "19:00",
+      "end_time": "20:30",
+      "repeat_type": "Weekly",
+      "reminder_minutes": 15,
+      "created_at": "2026-09-02T16:56:11.445030",
+      "is_active": 1,
+      "end_date": "2026-11-20",
+      "custom_dates": ""
+    }
+  ],
+  "task_completions": [
+    {
+      "completion_id": 134,
+      "task_id": 20,
+      "completion_date": "2026-08-31",
+      "completed_at": "2026-08-31T20:25:04.934633",
+      "notes": ""
+    },
+    {
+      "completion_id": 135,
+      "task_id": 21,
+      "completion_date": "2026-08-31",
+      "completed_at": "2026-08-31T23:47:36.090504",
+      "notes": ""
+    },
+    {
+      "completion_id": 136,
+      "task_id": 24,
+      "completion_date": "2026-08-31",
+      "completed_at": "2026-08-31T23:47:37.048895",
+      "notes": ""
+    },
+    {
+      "completion_id": 137,
+      "task_id": 23,
+      "completion_date": "2026-09-01",
+      "completed_at": "2026-09-01T16:33:48.576758",
+      "notes": ""
+    },
+    {
+      "completion_id": 138,
+      "task_id": 30,
+      "completion_date": "2026-09-01",
+      "completed_at": "2026-09-01T16:33:50.921355",
+      "notes": ""
+    },
+    {
+      "completion_id": 139,
+      "task_id": 20,
+      "completion_date": "2026-09-01",
+      "completed_at": "2026-09-01T21:43:45.416830",
+      "notes": ""
+    },
+    {
+      "completion_id": 140,
+      "task_id": 21,
+      "completion_date": "2026-09-01",
+      "completed_at": "2026-09-01T21:43:46.887308",
+      "notes": ""
+    },
+    {
+      "completion_id": 141,
+      "task_id": 24,
+      "completion_date": "2026-09-01",
+      "completed_at": "2026-09-01T23:08:55.042844",
+      "notes": ""
+    },
+    {
+      "completion_id": 142,
+      "task_id": 23,
+      "completion_date": "2026-09-02",
+      "completed_at": "2026-09-02T13:17:19.757305",
+      "notes": ""
+    },
+    {
+      "completion_id": 143,
+      "task_id": 30,
+      "completion_date": "2026-09-02",
+      "completed_at": "2026-09-02T16:49:23.197534",
+      "notes": ""
+    },
+    {
+      "completion_id": 144,
+      "task_id": 37,
+      "completion_date": "2026-09-02",
+      "completed_at": "2026-09-02T19:07:39.815963",
+      "notes": ""
+    },
+    {
+      "completion_id": 145,
+      "task_id": 21,
+      "completion_date": "2026-09-02",
+      "completed_at": "2026-09-02T21:38:04.390401",
+      "notes": ""
+    },
+    {
+      "completion_id": 146,
+      "task_id": 24,
+      "completion_date": "2026-09-02",
+      "completed_at": "2026-09-02T22:10:51.257737",
+      "notes": ""
+    }
+  ],
+  "settings": {
+    "sound_enabled": "1",
+    "default_reminder_min": "15",
+    "theme": "dark",
+    "user_name": "Sumesh"
+  }
+}

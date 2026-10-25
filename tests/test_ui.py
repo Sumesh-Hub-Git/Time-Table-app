@@ -7,7 +7,7 @@ import shutil
 # Run in offscreen mode for automated headless testing
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QLineEdit
 from database.db import DatabaseManager
 from services.task_service import TaskService
 from services.streak_service import StreakService
@@ -72,6 +72,28 @@ class TestStudyFlowUI(unittest.TestCase):
         tl.search_input.setText("Discrete")
         tl.refresh_tasks()
         self.assertGreater(tl.tasks_layout.count(), 0)
+
+    def test_ai_telegram_settings_keep_credentials_in_session(self):
+        view = SettingsView(self.db, self.export_service)
+        self.assertEqual(view.ai_provider_combo.itemData(0), "groq")
+        self.assertEqual(view.ai_provider_combo.itemData(1), "ollama")
+        self.assertTrue(view.ai_model_combo.isEditable())
+        self.assertEqual(view.ai_model_combo.currentText(), "llama-3.3-70b-versatile")
+        view.ai_provider_combo.setCurrentIndex(1)
+        self.assertIn("llama3.2", [
+            view.ai_model_combo.itemText(index)
+            for index in range(view.ai_model_combo.count())
+        ])
+        self.assertEqual(view.ai_model_combo.currentText(), "llama3.2")
+        self.assertEqual(view.groq_api_key_input.echoMode(), QLineEdit.Password)
+        self.assertEqual(view.telegram_bot_token_input.echoMode(), QLineEdit.Password)
+
+        view.groq_api_key_input.setText("test-api-key")
+        view.telegram_bot_token_input.setText("test-bot-token")
+        with self.db.transaction() as conn:
+            stored_settings = [row["key"] for row in conn.execute("SELECT key FROM settings")]
+        self.assertNotIn("groq_api_key", stored_settings)
+        self.assertNotIn("telegram_bot_token", stored_settings)
 
 
 if __name__ == "__main__":

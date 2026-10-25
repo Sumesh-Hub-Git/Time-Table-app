@@ -241,7 +241,7 @@ class MainWindow(QMainWindow):
         )
         self.settings_view.theme_changed.connect(self._apply_theme)
         self.settings_view.user_name_changed.connect(self._on_user_name_changed)
-        self.settings_view.data_reset_requested.connect(self._refresh_all_views)
+        self.settings_view.data_changed.connect(self._refresh_all_views)
         self.stack.addWidget(self.settings_view)
 
     def _navigate_to(self, index: int):
@@ -326,3 +326,9 @@ class MainWindow(QMainWindow):
     def _on_toast_mark_done(self, task_id: int):
         self.task_service.toggle_task_completion(task_id, today_date())
         self._refresh_all_views()
+
+    def closeEvent(self, event):
+        self.reminder_service.stop()
+        if hasattr(self, "settings_view"):
+            self.settings_view.wait_for_operation()
+        super().closeEvent(event)

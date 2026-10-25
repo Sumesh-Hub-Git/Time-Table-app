@@ -114,6 +114,18 @@ class DatabaseManager:
             );
             """)
 
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS telegram_reminder_attempts (
+                task_id INTEGER NOT NULL,
+                reminder_date TEXT NOT NULL,
+                status TEXT NOT NULL,
+                last_attempt_at TEXT NOT NULL,
+                sent_at TEXT,
+                PRIMARY KEY (task_id, reminder_date),
+                FOREIGN KEY (task_id) REFERENCES tasks (task_id) ON DELETE CASCADE
+            );
+            """)
+
             # Indexes for high performance queries
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_date ON tasks(scheduled_date);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_active ON tasks(is_active);")

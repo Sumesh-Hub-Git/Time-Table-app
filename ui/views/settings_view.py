@@ -1,24 +1,50 @@
-"""
-StudyFlow Settings View (FR-15, Section 26)
-Configuration interface for:
-- User profile & display name
-- Dark / Light Theme switching
-- Reminder & notification preferences
-- CSV / JSON data export
-- SQLite database backup & restore
-- Application & technology info for project submission
-"""
+"""StudyFlow settings, data portability, and AI Telegram integration UI."""
 
-from typing import Optional
+import sqlite3
+from datetime import date
+from typing import Callable, Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QLineEdit, QPushButton, QComboBox,
-    QScrollArea, QFrame, QFileDialog, QMessageBox
+    QLineEdit, QPushButton, QComboBox, QPlainTextEdit,
+    QScrollArea, QFrame, QFileDialog, QMessageBox, QFormLayout
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal, QThread
 from services.export_service import ExportService
+from services.ai_telegram_service import (
+    DEFAULT_GROQ_MODEL,
+    DEFAULT_OLLAMA_MODEL,
+    DEFAULT_OLLAMA_URL,
+    GROQ_MODEL_SUGGESTIONS,
+    OLLAMA_MODEL_SUGGESTIONS,
+    generate_study_message,
+    list_available_models,
+    send_telegram_message,
+)
 from database.db import DatabaseManager
+from services.task_service import TaskService
+from services.telegram_automation import (
+    disable_automatic_reminders,
+    enable_automatic_reminders,
+    get_automation_credentials,
+)
 from ui.dialogs.confirm_dialog import ask_confirm
+
+
+class _BackgroundOperation(QThread):
+    succeeded = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, operation: Callable[[], object], parent=None):
+        super().__init__(parent)
+        self.operation = operation
+
+    def run(self):
+        try:
+            result = self.operation()
+        except Exception as exc:
+            self.failed.emit(str(exc))
+        else:
+            self.succeeded.emit(result)
 
 
 class SettingsView(QWidget):
@@ -26,7 +52,7 @@ class SettingsView(QWidget):
 
     theme_changed = Signal(str)  # "dark" or "light"
     user_name_changed = Signal(str)
-    data_reset_requested = Signal()
+    data_changed = Signal()
 
     def __init__(
         self,
@@ -39,8 +65,10 @@ class SettingsView(QWidget):
         super().__init__(parent)
         self.db = db
         self.export_service = export_service
+        self.task_service = TaskService(db)
         self.user_name = user_name
         self.current_theme = current_theme
+        self._worker: Optional[_BackgroundOperation] = None
 
         self._init_ui()
         self._load_settings()
@@ -145,6 +173,11 @@ class SettingsView(QWidget):
         btn_grid.addWidget(restore_btn)
         bf_layout.addLayout(btn_grid)
 
+        import_btn = QPushButton("📥 Import Data (CSV / JSON)")
+        import_btn.setObjectName("secondaryButton")
+        import_btn.clicked.connect(self._import_data)
+        bf_layout.addWidget(import_btn)
+
         # Reset sample data
         reset_row = QHBoxLayout()
         reset_row.setContentsMargins(0, 8, 0, 0)
@@ -162,7 +195,98 @@ class SettingsView(QWidget):
 
         layout.addWidget(backup_frame)
 
-        # 4. About & Project Info Frame
+        # 4. AI-generated Telegram update
+        telegram_frame = self._create_card("AI Study Update → Telegram")
+        telegram_layout = QVBoxLayout(telegram_frame)
+        telegram_layout.setContentsMargins(18, 16, 18, 16)
+        telegram_layout.setSpacing(12)
+
+        privacy_note = QLabel(
+            "Manual messages use credentials entered in this window. Enabling automation stores its credentials "
+            "in the Windows Credential Manager so reminders can run while the app is closed. "
+            "Groq sends schedule details to its cloud API; Ollama uses your configured local server."
+        )
+        privacy_note.setWordWrap(True)
+        privacy_note.setStyleSheet("color: #64748B; font-size: 12px; background: transparent;")
+        telegram_layout.addWidget(privacy_note)
+
+        self.ai_provider_form = QFormLayout()
+        self.ai_provider_combo = QComboBox()
+        self.ai_provider_combo.addItem("Groq (Cloud)", "groq")
+        self.ai_provider_combo.addItem("Ollama (Local)", "ollama")
+        self.ai_provider_combo.currentIndexChanged.connect(self._update_ai_provider_fields)
+        self.ai_provider_form.addRow("AI provider:", self.ai_provider_combo)
+
+        self.groq_api_key_input = QLineEdit()
+        self.groq_api_key_input.setEchoMode(QLineEdit.Password)
+        self.groq_api_key_input.setPlaceholderText("Enter Groq API key")
+        self.ai_provider_form.addRow("Groq API key:", self.groq_api_key_input)
+
+        self.ai_model_combo = QComboBox()
+        self.ai_model_combo.setEditable(True)
+        self.ai_provider_form.addRow("Model:", self.ai_model_combo)
+
+        self.refresh_models_btn = QPushButton("Refresh available models")
+        self.refresh_models_btn.setObjectName("secondaryButton")
+        self.refresh_models_btn.clicked.connect(self._refresh_available_models)
+        self.ai_provider_form.addRow("", self.refresh_models_btn)
+
+        self.ollama_url_input = QLineEdit(DEFAULT_OLLAMA_URL)
+        self.ollama_url_input.setPlaceholderText(DEFAULT_OLLAMA_URL)
+        self.ai_provider_form.addRow("Ollama server URL:", self.ollama_url_input)
+        telegram_layout.addLayout(self.ai_provider_form)
+
+        self.telegram_bot_token_input = QLineEdit()
+        self.telegram_bot_token_input.setEchoMode(QLineEdit.Password)
+        self.telegram_bot_token_input.setPlaceholderText("Enter Telegram bot token")
+        self.telegram_chat_id_input = QLineEdit()
+        self.telegram_chat_id_input.setPlaceholderText("Enter Telegram chat ID")
+        telegram_layout.addWidget(QLabel("Telegram bot token:"))
+        telegram_layout.addWidget(self.telegram_bot_token_input)
+        telegram_layout.addWidget(QLabel("Telegram chat ID:"))
+        telegram_layout.addWidget(self.telegram_chat_id_input)
+
+        self.generate_message_btn = QPushButton("Generate Today's Study Update")
+        self.generate_message_btn.setObjectName("primaryButton")
+        self.generate_message_btn.clicked.connect(self._generate_ai_message)
+        telegram_layout.addWidget(self.generate_message_btn)
+
+        self.generated_message_input = QPlainTextEdit()
+        self.generated_message_input.setPlaceholderText("Your generated update will appear here for review and editing.")
+        self.generated_message_input.setMinimumHeight(110)
+        telegram_layout.addWidget(self.generated_message_input)
+
+        self.send_telegram_btn = QPushButton("Send Message to Telegram")
+        self.send_telegram_btn.setObjectName("secondaryButton")
+        self.send_telegram_btn.setEnabled(False)
+        self.send_telegram_btn.clicked.connect(self._send_telegram_message)
+        telegram_layout.addWidget(self.send_telegram_btn)
+
+        automatic_note = QLabel(
+            "Automatically generate and send an AI Telegram reminder 10 minutes before each pending task. "
+            "The background scheduler starts when you sign in to Windows."
+        )
+        automatic_note.setWordWrap(True)
+        automatic_note.setStyleSheet("color: #64748B; font-size: 12px; background: transparent;")
+        telegram_layout.addWidget(automatic_note)
+
+        self.automatic_status_label = QLabel("Automatic reminders are disabled.")
+        self.automatic_status_label.setWordWrap(True)
+        telegram_layout.addWidget(self.automatic_status_label)
+
+        automatic_buttons = QHBoxLayout()
+        self.enable_automatic_btn = QPushButton("Enable Automatic Reminders")
+        self.enable_automatic_btn.setObjectName("primaryButton")
+        self.enable_automatic_btn.clicked.connect(self._enable_automatic_reminders)
+        self.disable_automatic_btn = QPushButton("Disable Automatic Reminders")
+        self.disable_automatic_btn.setObjectName("dangerButton")
+        self.disable_automatic_btn.clicked.connect(self._disable_automatic_reminders)
+        automatic_buttons.addWidget(self.enable_automatic_btn)
+        automatic_buttons.addWidget(self.disable_automatic_btn)
+        telegram_layout.addLayout(automatic_buttons)
+        layout.addWidget(telegram_frame)
+
+        # 5. About & Project Info Frame
         about_frame = self._create_card("About StudyFlow")
         af_layout = QVBoxLayout(about_frame)
         af_layout.setContentsMargins(18, 16, 18, 16)
@@ -204,6 +328,184 @@ class SettingsView(QWidget):
             idx = self.theme_combo.findData(settings["theme"])
             if idx >= 0:
                 self.theme_combo.setCurrentIndex(idx)
+        provider_index = self.ai_provider_combo.findData(
+            settings.get("telegram_auto_provider", "groq")
+        )
+        self.ai_provider_combo.setCurrentIndex(max(provider_index, 0))
+        self._update_ai_provider_fields()
+        if settings.get("telegram_auto_model"):
+            self.ai_model_combo.setCurrentText(settings["telegram_auto_model"])
+        if settings.get("telegram_auto_ollama_url"):
+            self.ollama_url_input.setText(settings["telegram_auto_ollama_url"])
+        is_enabled = settings.get("telegram_auto_enabled") == "1"
+        if is_enabled:
+            self.automatic_status_label.setText(
+                "Automatic reminders are enabled. Credentials are stored in the Windows Credential Manager."
+            )
+            self.telegram_bot_token_input.setPlaceholderText("Credential saved in Windows Credential Manager")
+            self.telegram_chat_id_input.setPlaceholderText("Credential saved in Windows Credential Manager")
+            self.groq_api_key_input.setPlaceholderText("Credential saved in Windows Credential Manager")
+        self.enable_automatic_btn.setEnabled(not is_enabled)
+        self.disable_automatic_btn.setEnabled(is_enabled)
+
+    def _update_ai_provider_fields(self):
+        is_groq = self.ai_provider_combo.currentData() == "groq"
+        self.groq_api_key_input.setVisible(is_groq)
+        self.ai_provider_form.labelForField(self.groq_api_key_input).setVisible(is_groq)
+        self.ollama_url_input.setVisible(not is_groq)
+        self.ai_provider_form.labelForField(self.ollama_url_input).setVisible(not is_groq)
+        suggestions = GROQ_MODEL_SUGGESTIONS if is_groq else OLLAMA_MODEL_SUGGESTIONS
+        default_model = DEFAULT_GROQ_MODEL if is_groq else DEFAULT_OLLAMA_MODEL
+        self.ai_model_combo.clear()
+        self.ai_model_combo.addItems(suggestions)
+        self.ai_model_combo.setCurrentText(default_model)
+
+    def _refresh_available_models(self):
+        provider = self.ai_provider_combo.currentData()
+        api_key = self.groq_api_key_input.text()
+        ollama_url = self.ollama_url_input.text()
+        self._start_background(
+            lambda: list_available_models(provider, api_key, ollama_url),
+            self._on_models_loaded,
+        )
+
+    def _on_models_loaded(self, models):
+        selected_model = self.ai_model_combo.currentText()
+        self.ai_model_combo.clear()
+        self.ai_model_combo.addItems(models)
+        if selected_model and self.ai_model_combo.findText(selected_model) < 0:
+            self.ai_model_combo.addItem(selected_model)
+        self.ai_model_combo.setCurrentText(selected_model or models[0])
+
+    def _generate_ai_message(self):
+        provider = self.ai_provider_combo.currentData()
+        api_key = self.groq_api_key_input.text()
+        model = self.ai_model_combo.currentText()
+        ollama_url = self.ollama_url_input.text()
+        target_date = date.today()
+        tasks = self.task_service.get_tasks_for_date(target_date)
+        self._start_background(
+            lambda: generate_study_message(
+                provider, api_key, model, ollama_url, target_date, tasks, self.user_name
+            ),
+            self._on_message_generated,
+        )
+
+    def _on_message_generated(self, message):
+        self.generated_message_input.setPlainText(message)
+        self.send_telegram_btn.setEnabled(True)
+
+    def _send_telegram_message(self):
+        bot_token = self.telegram_bot_token_input.text()
+        chat_id = self.telegram_chat_id_input.text()
+        message = self.generated_message_input.toPlainText()
+        self._start_background(
+            lambda: send_telegram_message(bot_token, chat_id, message),
+            self._on_telegram_sent,
+        )
+
+    def _enable_automatic_reminders(self):
+        try:
+            stored_credentials = get_automation_credentials()
+            enable_automatic_reminders(
+                self.db,
+                self.ai_provider_combo.currentData(),
+                self.ai_model_combo.currentText(),
+                self.ollama_url_input.text(),
+                self.telegram_bot_token_input.text() or stored_credentials["telegram_bot_token"],
+                self.telegram_chat_id_input.text() or stored_credentials["telegram_chat_id"],
+                self.groq_api_key_input.text() or stored_credentials["groq_api_key"],
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "Could Not Enable Automatic Reminders", str(exc))
+            return
+
+        self.telegram_bot_token_input.clear()
+        self.telegram_chat_id_input.clear()
+        self.groq_api_key_input.clear()
+        self.automatic_status_label.setText(
+            "Automatic reminders are enabled. They will run while StudyFlow is closed and start at Windows sign-in."
+        )
+        self.telegram_bot_token_input.setPlaceholderText("Credential saved in Windows Credential Manager")
+        self.telegram_chat_id_input.setPlaceholderText("Credential saved in Windows Credential Manager")
+        self.groq_api_key_input.setPlaceholderText("Credential saved in Windows Credential Manager")
+        self.enable_automatic_btn.setEnabled(False)
+        self.disable_automatic_btn.setEnabled(True)
+        QMessageBox.information(
+            self,
+            "Automatic Reminders Enabled",
+            "The background scheduler is running and will start automatically at Windows sign-in.",
+        )
+
+    def _disable_automatic_reminders(self):
+        try:
+            disable_automatic_reminders(self.db)
+        except Exception as exc:
+            QMessageBox.critical(self, "Could Not Disable Automatic Reminders", str(exc))
+            return
+
+        self.automatic_status_label.setText("Automatic reminders are disabled.")
+        self.telegram_bot_token_input.setPlaceholderText("Enter Telegram bot token")
+        self.telegram_chat_id_input.setPlaceholderText("Enter Telegram chat ID")
+        self.groq_api_key_input.setPlaceholderText("Enter Groq API key")
+        self.enable_automatic_btn.setEnabled(True)
+        self.disable_automatic_btn.setEnabled(False)
+        QMessageBox.information(
+            self,
+            "Automatic Reminders Disabled",
+            "The Windows startup task and saved automation credentials have been removed.",
+        )
+
+    def _on_telegram_sent(self, _result):
+        QMessageBox.information(self, "Message Sent", "The study update was sent to Telegram.")
+
+    def _start_background(self, operation: Callable[[], object], on_success: Callable[[object], None]):
+        if self._worker and self._worker.isRunning():
+            return
+        self.generate_message_btn.setEnabled(False)
+        self.send_telegram_btn.setEnabled(False)
+        self.refresh_models_btn.setEnabled(False)
+        worker = _BackgroundOperation(operation, self)
+        worker.succeeded.connect(on_success)
+        worker.failed.connect(self._show_operation_error)
+        worker.finished.connect(self._operation_finished)
+        worker.finished.connect(worker.deleteLater)
+        self._worker = worker
+        worker.start()
+
+    def _operation_finished(self):
+        self._worker = None
+        self.generate_message_btn.setEnabled(True)
+        self.send_telegram_btn.setEnabled(bool(self.generated_message_input.toPlainText().strip()))
+        self.refresh_models_btn.setEnabled(True)
+
+    def _show_operation_error(self, message):
+        QMessageBox.critical(self, "Operation Failed", message)
+
+    def _import_data(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import StudyFlow Data",
+            "",
+            "StudyFlow exports (*.json *.csv);;JSON files (*.json);;CSV files (*.csv)",
+        )
+        if not file_path:
+            return
+        try:
+            imported = self.export_service.import_data(file_path)
+        except (OSError, ValueError, sqlite3.Error) as exc:
+            QMessageBox.critical(self, "Import Failed", str(exc))
+            return
+
+        QMessageBox.information(
+            self,
+            "Import Complete",
+            "Data merged successfully:\n"
+            f"Categories added: {imported['categories']}\n"
+            f"Tasks added: {imported['tasks']}\n"
+            f"Completions added: {imported['completions']}",
+        )
+        self.data_changed.emit()
 
     def _save_user_name(self):
         name = self.name_input.text().strip()
@@ -257,7 +559,7 @@ class SettingsView(QWidget):
                 success = self.export_service.restore_database(file_path)
                 if success:
                     QMessageBox.information(self, "Restore Complete", "Database restored successfully! Refreshing data...")
-                    self.data_reset_requested.emit()
+                    self.data_changed.emit()
                 else:
                     QMessageBox.critical(self, "Restore Failed", "Failed to restore database from selected file.")
 
@@ -265,4 +567,12 @@ class SettingsView(QWidget):
         if ask_confirm(self, "Reset Sample Data", "This will reset all tasks and streaks back to the default sample dataset. Proceed?", is_danger=True):
             self.export_service.reset_database()
             QMessageBox.information(self, "Reset Complete", "Sample data re-initialized successfully!")
-            self.data_reset_requested.emit()
+            self.data_changed.emit()
+
+    def closeEvent(self, event):
+        self.wait_for_operation()
+        super().closeEvent(event)
+
+    def wait_for_operation(self):
+        if self._worker and self._worker.isRunning():
+            self._worker.wait()

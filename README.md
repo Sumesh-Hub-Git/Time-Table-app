@@ -49,6 +49,17 @@ python main.py
 
 On first launch, StudyFlow creates its SQLite database (`studyflow.db`) in the project directory and initializes default categories and sample schedule data. The database stores tasks, categories, completions, and settings locally; no cloud account is required.
 
+### Standalone Windows executable
+
+`dist\StudyFlow.exe` is a self-contained, single-file Windows build. It bundles Python and the app's Python dependencies, so people running it do not need to install Python or pip. To build it from source on Windows, install the build dependencies and run the PowerShell script:
+
+```powershell
+python -m pip install -r requirements-build.txt
+.\build_exe.ps1
+```
+
+The executable stores its database and logs in `%LOCALAPPDATA%\StudyFlow`; it does not need write access to the folder containing the executable. Automatic Telegram reminders continue to use Windows Task Scheduler. Groq, Telegram, and Ollama features still require their respective network services or local Ollama installation.
+
 ## AI-generated Telegram updates
 
 Open **Settings → AI Study Update → Telegram**:

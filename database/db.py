@@ -6,13 +6,21 @@ and sample seed data initialization.
 
 import sqlite3
 import os
+import sys
 import json
 from datetime import datetime, date, timedelta
 from typing import Optional, List, Dict, Any, Tuple
 from contextlib import contextmanager
 
-# Default database location in the application root directory
-DEFAULT_DB_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "studyflow.db")
+# Keep source checkouts portable while storing frozen-app data in a writable location.
+if getattr(sys, "frozen", False):
+    DEFAULT_DB_FILE = os.path.join(
+        os.environ["LOCALAPPDATA"], "StudyFlow", "studyflow.db"
+    )
+else:
+    DEFAULT_DB_FILE = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "studyflow.db"
+    )
 
 
 class DatabaseManager:

@@ -145,14 +145,20 @@ def register_background_scheduler(db_path: str) -> None:
     """Register and start a hidden scheduler at the current user's next logon."""
     _require_windows_scheduler()
 
-    pythonw = Path(sys.executable).with_name("pythonw.exe")
-    scheduler_script = Path(__file__).resolve().parent.parent / "telegram_scheduler.py"
-    if not pythonw.is_file():
-        raise RuntimeError(f"Could not find pythonw.exe next to the Python interpreter: {pythonw}")
-    if not scheduler_script.is_file():
-        raise RuntimeError(f"Background scheduler script was not found: {scheduler_script}")
+    if getattr(sys, "frozen", False):
+        task_command = (
+            f'"{Path(sys.executable)}" --telegram-scheduler '
+            f'--db-path "{Path(db_path).resolve()}"'
+        )
+    else:
+        pythonw = Path(sys.executable).with_name("pythonw.exe")
+        scheduler_script = Path(__file__).resolve().parent.parent / "telegram_scheduler.py"
+        if not pythonw.is_file():
+            raise RuntimeError(f"Could not find pythonw.exe next to the Python interpreter: {pythonw}")
+        if not scheduler_script.is_file():
+            raise RuntimeError(f"Background scheduler script was not found: {scheduler_script}")
+        task_command = f'"{pythonw}" "{scheduler_script}" --db-path "{Path(db_path).resolve()}"'
 
-    task_command = f'"{pythonw}" "{scheduler_script}" --db-path "{Path(db_path).resolve()}"'
     _run_schtasks([
         "/Create",
         "/TN", SCHEDULER_TASK_NAME,
